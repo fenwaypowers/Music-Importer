@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "musicimporter"
 version = "0.1.0"
-description = "Import music from a folder to format and import the contents into your music library."
+description = "Import, organize, clean, and optionally convert music for your library."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
@@ -14,10 +14,32 @@ authors = [
     { name = "Fenway Powers" }
 ]
 
-dependencies = []
+dependencies = [
+    "mutagen>=1.47",
+]
+
+keywords = [
+    "music",
+    "audio",
+    "metadata",
+    "ffmpeg",
+    "music-library",
+]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Multimedia :: Sound/Audio :: Conversion",
+]
 
 [project.scripts]
-musicinbox = "musicimporter.cli:main"
+musicimporter = "musicimporter.__main__:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
