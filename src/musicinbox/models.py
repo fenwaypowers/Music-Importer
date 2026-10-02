@@ -134,8 +134,6 @@ class Album:
         self.songs.sort(key=lambda s: Path(s.path).name.lower())
 
     def resolve_metadata(self) -> None:
-
-
         if len(self.albumartists) > 1:
             self.albumartist = "Various Artists"
         else:
