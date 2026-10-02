@@ -163,7 +163,9 @@ class Album:
         export_dir: str,
         ffmpeg_options: str = "-c:a copy",
         extension: str = "copy",
-    ) -> None:
+    ) -> list[Song]:
+        exported: list[Song] = []
+        
         self.resolve_metadata()
 
         album_export_path = os.path.join(
@@ -200,6 +202,9 @@ class Album:
                 export_path, year=self.year, albumartist=self.albumartist
             )
             song.apply_cover_art(export_path)
+            exported.append(song)
+
+        return exported
 
     def __str__(self) -> str:
         return (
