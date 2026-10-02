@@ -6,8 +6,31 @@ from pathlib import Path
 from typing import Optional
 from clean import clean_audio
 
-albums: list[Album] = []
+def parse_number(value: Optional[str]) -> Optional[int]:
+    if value is None:
+        return None
+    try:
+        return int(value.split("/")[0])
+    except ValueError:
+        return None
 
+def add_to_album(song):
+    for album in albums:
+        if album.album == song.album:
+            album.add_song(song)
+            return
+
+    new_album = Album(song.album)
+    new_album.add_song(song)
+    albums.append(new_album)
+
+def parse_year(value: Optional[str]) -> Optional[int]:
+    if value is None:
+        return None
+    try:
+        return int(value[:4])
+    except ValueError:
+        return None
 
 class Song:
     def __init__(self, original_path: str):
@@ -17,21 +40,16 @@ class Song:
         self.title: Optional[str] = None
         self.artist: Optional[str] = None
         self.album: Optional[str] = None
-        self.year: Optional[str] = None
-        self.tracknumber: Optional[str] = None
+        self.year: Optional[int] = None
+        self.tracknumber: Optional[int] = None
         self.genre: Optional[str] = None
         self.comment: Optional[str] = None
         self.albumartist: Optional[str] = None
-        self.discnumber: Optional[str] = None
-
-        self.new_path: Optional[str] = None
-        self.new_year: Optional[str] = None
-        self.new_albumartist: Optional[str] = None
-
-        self.metadata_loaded: bool = False
+        self.discnumber: Optional[int] = None
 
         self.load_metadata()
-        self.add_to_album()
+        add_to_album(self)
+
 
     def load_metadata(self) -> None:
         try:
@@ -40,46 +58,31 @@ class Song:
                 self.title = audio.get("title", [None])[0]
                 self.artist = audio.get("artist", [None])[0]
                 self.album = audio.get("album", [None])[0]
-                self.year = audio.get("date", [None])[0]
+                self.year = parse_year(audio.get("date", [None])[0])
 
-                # make sure year only includes the year, and no extra info like month/day
-                if self.year is not None:
-                    self.year = self.year[:4]
-
-                self.tracknumber = audio.get("tracknumber", [None])[0]
+                self.tracknumber = parse_number(audio.get("tracknumber", [None])[0])
                 self.genre = audio.get("genre", [None])[0]
                 self.comment = audio.get("comment", [None])[0]
                 self.albumartist = audio.get("albumartist", [None])[0]
-                self.discnumber = audio.get("discnumber", [None])[0]
+                self.discnumber = parse_number(audio.get("discnumber", [None])[0])
         except Exception as e:
             print(f"Error loading metadata for {self.original_path}: {e}")
 
-        self.metadata_loaded = True
 
-    def apply_new_metadata(self):
+    def apply_new_metadata(self, path: str, year: Optional[int] = None, albumartist: Optional[str] = None):
         try:
-            audio = File(self.new_path, easy=True)
+            audio = File(path, easy=True)
             if audio is not None:
-                if self.new_year is not None:
-                    audio["date"] = self.new_year
-                if self.new_albumartist is not None:
-                    audio["albumartist"] = self.new_albumartist
+                if year is not None:
+                    audio["date"] = year
+                if albumartist is not None:
+                    audio["albumartist"] = albumartist
                 audio.save()
 
-            clean_audio(self.new_path)
+            clean_audio(path)
         except Exception as e:
             print(f"Error applying new metadata for {self.original_path}: {e}")
 
-
-    def add_to_album(self):
-        for album in albums:
-            if album.album == self.album:
-                album.add_song(self)
-                return
-
-        new_album = Album(self.album)
-        new_album.add_song(self)
-        albums.append(new_album)
 
     def __str__(self):
         return f"Song(title={self.title}, artist={self.artist}, album={self.album}, year={self.year}, tracknumber={self.tracknumber}, genre={self.genre}, comment={self.comment}, albumartist={self.albumartist}, discnumber={self.discnumber})"
@@ -89,10 +92,10 @@ class Album:
     def __init__(self, album: Optional[str]):
         self.album: Optional[str] = album
         self.albumartist: Optional[str] = None
-        self.year: Optional[str] = None
+        self.year: Optional[int] = None
 
         self.albumartists: list[str] = []
-        self.years: list[str] = []
+        self.years: list[int] = []
 
         self.songs: list[Song] = []
 
@@ -116,26 +119,27 @@ class Album:
         else:
             self.albumartist = self.albumartists[0] if self.albumartists else "Unknown Artist"
 
-        self.year = min(self.years, key=int) if self.years else None
+        self.year = min(self.years) if self.years else None
 
         album_export_path = os.path.join(export_path, self.albumartist, self.album or "Unknown Album")
         os.makedirs(album_export_path, exist_ok=True)
 
         for song in self.songs:
-            song.new_year = self.year
-            song.new_albumartist = self.albumartist
-            formatted_tracknumber = f"{int(song.tracknumber):02}" if song.tracknumber is not None else "00"
+            formatted_tracknumber = f"{song.tracknumber:02}" if song.tracknumber is not None else "00"
+            discnumber_prefix = f"{song.discnumber:02}-" if song.discnumber is not None else ""
 
-            song_export_path = os.path.join(album_export_path, f"{formatted_tracknumber}. {song.title or 'Unknown Title'}")
+            song_export_path = os.path.join(album_export_path, f"{discnumber_prefix}{formatted_tracknumber}. {song.title or 'Unknown Title'}.{format if format != 'copy' else Path(song.original_path).suffix.lstrip('.')}")
             
             if format == "copy":
-                shutil.copy(song.original_path, song_export_path)
+                shutil.copy2(song.original_path, song_export_path)
+            else:
+                # TODO: conversion for other formats
+                pass
 
-            # TODO: conversion for other formats
+            song.apply_new_metadata(song_export_path, year=self.year, albumartist=self.albumartist)
 
-            song.new_path = song_export_path
-            song.apply_new_metadata()
 
+albums: list[Album] = []
 
 def main():
     song_path = sys.argv[1] if len(sys.argv) > 1 else ""
