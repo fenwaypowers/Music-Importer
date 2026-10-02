@@ -180,6 +180,7 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-# test folders
+# test folders and files
 inbox/*
 library/*
+test.py
