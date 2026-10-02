@@ -6,8 +6,7 @@ from mutagen.oggopus import OggOpus
 from mutagen.wave import WAVE
 from mutagen.monkeysaudio import MonkeysAudio
 from mutagen.wavpack import WavPack
-from mutagen._file import File
-
+from mutagen import File  # type: ignore
 
 # ---------------------------------------------------------------------------
 # Vorbis comments
@@ -21,21 +20,16 @@ VORBIS_KEEP = {
     "album",
     "date",
     "year",
-
     "tracknumber",
     "tracktotal",
     "totaltracks",
-
     "discnumber",
     "disctotal",
     "totaldiscs",
-
     "genre",
     "composer",
-
     # Cover art
     "metadata_block_picture",
-
     # Older/nonstandard cover-art convention
     "coverart",
     "coverartmime",
@@ -142,26 +136,20 @@ def clean_wav(file):
 APE_KEEP = {
     "title",
     "artist",
-
     # Both variants occur in the wild.
     "album artist",
     "albumartist",
-
     "album",
-
     "year",
     "date",
-
     "track",
     "tracknumber",
     "tracktotal",
     "totaltracks",
-
     "disc",
     "discnumber",
     "disctotal",
     "totaldiscs",
-
     "genre",
     "composer",
 }
@@ -194,6 +182,7 @@ def clean_wv(file):
     audio = WavPack(file)
     _clean_apev2(audio)
 
+
 def clean_mp4(file):
     audio = File(file)
 
@@ -203,14 +192,14 @@ def clean_mp4(file):
     keep = {
         "\xa9nam",  # title
         "\xa9ART",  # artist
-        "aART",     # album artist
+        "aART",  # album artist
         "\xa9alb",  # album
         "\xa9day",  # year
-        "trkn",     # track
-        "disk",     # disc
+        "trkn",  # track
+        "disk",  # disc
         "\xa9gen",  # genre
         "\xa9wrt",  # composer
-        "covr",     # cover
+        "covr",  # cover
     }
 
     tags = audio.tags
@@ -220,6 +209,7 @@ def clean_mp4(file):
             del tags[key]
 
     audio.save()
+
 
 def clean_audio(file):
     audio = File(file)
