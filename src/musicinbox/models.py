@@ -1,6 +1,4 @@
 import os
-import sys
-import shutil
 from mutagen import File  # type: ignore
 from pathlib import Path
 from typing import Optional
@@ -9,33 +7,6 @@ from convert import set_cover_art
 from convert import CoverArt
 from convert import get_cover_art
 from convert import convert_audio
-
-
-AUDIO_EXTS = {
-    ".flac",
-    ".mp3",
-    ".m4a",
-    ".aac",
-    ".ogg",
-    ".opus",
-    ".wav",
-    ".alac",
-    ".ape",
-    ".wv",
-    ".mp4",
-    ".mka",
-}
-
-
-def add_to_album(song) -> None:
-    for album in albums:
-        if album.album == song.album:
-            album.add_song(song)
-            return
-
-    new_album = Album(song.album)
-    new_album.add_song(song)
-    albums.append(new_album)
 
 
 def parse_number(value: Optional[str]) -> Optional[int]:
@@ -82,21 +53,27 @@ class Song:
         self.load_metadata()
 
     def load_metadata(self) -> None:
-        try:
-            audio = File(self.path, easy=True)
-            if audio is not None:
-                self.title = audio.get("title", [None])[0]
-                self.artist = audio.get("artist", [None])[0]
-                self.album = audio.get("album", [None])[0]
-                self.year = parse_year(audio.get("date", [None])[0])
+        audio = File(self.path, easy=True)
 
-                self.tracknumber = parse_number(audio.get("tracknumber", [None])[0])
-                self.genre = audio.get("genre", [None])[0]
-                self.comment = audio.get("comment", [None])[0]
-                self.albumartist = audio.get("albumartist", [None])[0]
-                self.discnumber = parse_number(audio.get("discnumber", [None])[0])
-        except Exception as e:
-            print(f"Error loading metadata for {self.path}: {e}")
+        if audio is None:
+            raise ValueError("Unsupported audio file")
+
+        self.title = audio.get("title", [None])[0] or None
+        self.artist = audio.get("artist", [None])[0] or None
+        self.album = audio.get("album", [None])[0] or None
+        self.year = parse_year(audio.get("date", [None])[0])
+
+        self.tracknumber = parse_number(
+            audio.get("tracknumber", [None])[0]
+        )
+
+        self.genre = audio.get("genre", [None])[0] or None
+        self.comment = audio.get("comment", [None])[0] or None
+        self.albumartist = audio.get("albumartist", [None])[0] or None
+
+        self.discnumber = parse_number(
+            audio.get("discnumber", [None])[0]
+        )
 
     def apply_new_metadata(
         self,
@@ -225,29 +202,3 @@ class Album:
             f"Album(album={self.album}, albumartist={self.albumartist}, year={self.year}, "
             f"songs=[{', '.join(str(song.title) for song in self.songs)}])"
         )
-
-
-albums: list[Album] = []
-
-
-def main():
-    in_path = sys.argv[1] if len(sys.argv) > 1 else ""
-    if in_path != "":
-        for root, _, files in os.walk(in_path):
-            for file in files:
-                if not any(file.lower().endswith(ext) for ext in AUDIO_EXTS):
-                    continue
-                file_path = os.path.join(root, file)
-                try:
-                    song = Song(file_path)
-                    add_to_album(song)
-                except Exception as e:
-                    print(f"Error processing file {file_path}: {e}")
-
-    for album in albums:
-        album.export("library")
-        print(album)
-
-
-if __name__ == "__main__":
-    main()

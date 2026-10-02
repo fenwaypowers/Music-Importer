@@ -12,7 +12,7 @@ from mutagen.oggvorbis import OggVorbis
 from mutagen.oggopus import OggOpus
 from mutagen.monkeysaudio import MonkeysAudio
 from mutagen.wavpack import WavPack
-from mutagen.id3 import ID3, APIC #type: ignore
+from mutagen.id3 import APIC #type: ignore
 
 
 @dataclass
@@ -191,7 +191,7 @@ def set_apev2_cover(
         + b"\x00"
         + cover.data
     )
-    
+
     audio.save()
 
 
