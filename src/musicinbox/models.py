@@ -6,13 +6,6 @@ from pathlib import Path
 from typing import Optional
 from clean import clean_audio
 
-def parse_number(value: Optional[str]) -> Optional[int]:
-    if value is None:
-        return None
-    try:
-        return int(value.split("/")[0])
-    except ValueError:
-        return None
 
 def add_to_album(song):
     for album in albums:
@@ -24,17 +17,32 @@ def add_to_album(song):
     new_album.add_song(song)
     albums.append(new_album)
 
+def parse_number(value: Optional[str]) -> Optional[int]:
+    if value is None:
+        return None
+
+    try:
+        return int(value.split("/", 1)[0])
+    except ValueError:
+        return None
+
+
 def parse_year(value: Optional[str]) -> Optional[int]:
     if value is None:
         return None
+
     try:
         return int(value[:4])
     except ValueError:
         return None
 
+def sanitize_filename(name: str) -> str:
+    invalid = '<>:"/\\|?*'
+    return "".join("_" if char in invalid else char for char in name).strip()
+
 class Song:
-    def __init__(self, original_path: str):
-        self.original_path: str = original_path
+    def __init__(self, path: str):
+        self.path: str = path
 
         # Metadata fields
         self.title: Optional[str] = None
@@ -48,12 +56,11 @@ class Song:
         self.discnumber: Optional[int] = None
 
         self.load_metadata()
-        add_to_album(self)
 
 
     def load_metadata(self) -> None:
         try:
-            audio = File(self.original_path, easy=True)
+            audio = File(self.path, easy=True)
             if audio is not None:
                 self.title = audio.get("title", [None])[0]
                 self.artist = audio.get("artist", [None])[0]
@@ -66,7 +73,7 @@ class Song:
                 self.albumartist = audio.get("albumartist", [None])[0]
                 self.discnumber = parse_number(audio.get("discnumber", [None])[0])
         except Exception as e:
-            print(f"Error loading metadata for {self.original_path}: {e}")
+            print(f"Error loading metadata for {self.path}: {e}")
 
 
     def apply_new_metadata(self, path: str, year: Optional[int] = None, albumartist: Optional[str] = None):
@@ -74,14 +81,14 @@ class Song:
             audio = File(path, easy=True)
             if audio is not None:
                 if year is not None:
-                    audio["date"] = year
+                    audio["date"] = str(year)
                 if albumartist is not None:
-                    audio["albumartist"] = albumartist
+                    audio["albumartist"] = str(albumartist)
                 audio.save()
 
             clean_audio(path)
         except Exception as e:
-            print(f"Error applying new metadata for {self.original_path}: {e}")
+            print(f"Error applying new metadata for {self.path}: {e}")
 
 
     def __str__(self):
@@ -108,12 +115,12 @@ class Album:
 
         self.songs.append(song)
 
-        # sort songs by tracknumber
+        # TODO: sort songs by filename
         self.songs.sort(
-            key=lambda s: s.tracknumber if s.tracknumber is not None else ""
+            key=lambda s: s.path.lower() if s.path is not None else ""
         )
 
-    def export(self, export_path: str, format: str = "copy"):
+    def export(self, export_dir: str, output_format: str = "copy"):
         if len(self.albumartists) > 1:
             self.albumartist = "Various Artists"
         else:
@@ -121,22 +128,22 @@ class Album:
 
         self.year = min(self.years) if self.years else None
 
-        album_export_path = os.path.join(export_path, self.albumartist, self.album or "Unknown Album")
+        album_export_path = os.path.join(export_dir, sanitize_filename(self.albumartist), sanitize_filename(self.album or "Unknown Album"))
         os.makedirs(album_export_path, exist_ok=True)
 
         for song in self.songs:
             formatted_tracknumber = f"{song.tracknumber:02}" if song.tracknumber is not None else "00"
-            discnumber_prefix = f"{song.discnumber:02}-" if song.discnumber is not None else ""
+            is_multidisc = any(song.discnumber is not None and song.discnumber > 1 for song in self.songs)
+            discnumber_prefix = f"{song.discnumber:02}-" if is_multidisc and song.discnumber is not None else ""
 
-            song_export_path = os.path.join(album_export_path, f"{discnumber_prefix}{formatted_tracknumber}. {song.title or 'Unknown Title'}.{format if format != 'copy' else Path(song.original_path).suffix.lstrip('.')}")
+            export_path = os.path.join(album_export_path, f"{discnumber_prefix}{formatted_tracknumber}. {sanitize_filename(song.title or 'Unknown Title')}.{output_format if output_format != 'copy' else Path(song.path).suffix.lstrip('.')}")
             
-            if format == "copy":
-                shutil.copy2(song.original_path, song_export_path)
+            if output_format == "copy":
+                shutil.copy2(song.path, export_path)
             else:
-                # TODO: conversion for other formats
-                pass
+                raise NotImplementedError(f"Conversion to format '{output_format}' is not implemented.")
 
-            song.apply_new_metadata(song_export_path, year=self.year, albumartist=self.albumartist)
+            song.apply_new_metadata(export_path, year=self.year, albumartist=self.albumartist)
 
 
 albums: list[Album] = []
