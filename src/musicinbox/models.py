@@ -146,10 +146,20 @@ class Album:
                 f"{song.discnumber:02}-" if song.discnumber is not None else ""
             )
 
-            export_path = os.path.join(
-                album_export_path,
-                f"{discnumber_prefix}{formatted_tracknumber}. {sanitize_filename(song.title or 'Unknown Title')}.{output_format if output_format != 'copy' else Path(song.path).suffix.lstrip('.')}",
+            if output_format == "copy":
+                extension = Path(song.path).suffix.lstrip(".")
+            else:
+                extension = output_format
+
+            title = sanitize_filename(song.title or "Unknown Title")
+
+            filename = (
+                f"{discnumber_prefix}"
+                f"{formatted_tracknumber}. "
+                f"{title}.{extension}"
             )
+
+            export_path = os.path.join(album_export_path, filename)
 
             if output_format == "copy":
                 shutil.copy2(song.path, export_path)
