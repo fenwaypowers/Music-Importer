@@ -1,7 +1,7 @@
 import os
 import sys
 import shutil
-from mutagen import File # type: ignore
+from mutagen import File  # type: ignore
 from pathlib import Path
 from typing import Optional
 from clean import clean_audio
@@ -43,6 +43,7 @@ def sanitize_filename(name: str) -> str:
     sanitized = "".join("_" if char in invalid else char for char in name)
     return sanitized.strip().rstrip(".")
 
+
 class Song:
     def __init__(self, path: str):
         self.path: str = path
@@ -59,7 +60,6 @@ class Song:
         self.discnumber: Optional[int] = None
 
         self.load_metadata()
-
 
     def load_metadata(self) -> None:
         try:
@@ -78,8 +78,9 @@ class Song:
         except Exception as e:
             print(f"Error loading metadata for {self.path}: {e}")
 
-
-    def apply_new_metadata(self, path: str, year: Optional[int] = None, albumartist: Optional[str] = None):
+    def apply_new_metadata(
+        self, path: str, year: Optional[int] = None, albumartist: Optional[str] = None
+    ):
         try:
             audio = File(path, easy=True)
             if audio is not None:
@@ -87,12 +88,11 @@ class Song:
                     audio["date"] = str(year)
                 if albumartist is not None:
                     audio["albumartist"] = albumartist
-                audio.save()   
+                audio.save()
         except Exception as e:
             print(f"Error applying new metadata for {self.path}: {e}")
 
         clean_audio(path)
-
 
     def __str__(self):
         return f"Song(title={self.title}, artist={self.artist}, album={self.album}, year={self.year}, tracknumber={self.tracknumber}, genre={self.genre}, comment={self.comment}, albumartist={self.albumartist}, discnumber={self.discnumber})"
@@ -119,36 +119,52 @@ class Album:
         self.songs.append(song)
 
         # TODO: sort songs by filename
-        self.songs.sort(
-            key=lambda s: Path(s.path).name.lower()
-        )
+        self.songs.sort(key=lambda s: Path(s.path).name.lower())
 
     def export(self, export_dir: str, output_format: str = "copy"):
         if len(self.albumartists) > 1:
             self.albumartist = "Various Artists"
         else:
-            self.albumartist = self.albumartists[0] if self.albumartists else "Unknown Artist"
+            self.albumartist = (
+                self.albumartists[0] if self.albumartists else "Unknown Artist"
+            )
 
         self.year = min(self.years) if self.years else None
 
-        album_export_path = os.path.join(export_dir, sanitize_filename(self.albumartist), sanitize_filename(self.album or "Unknown Album"))
+        album_export_path = os.path.join(
+            export_dir,
+            sanitize_filename(self.albumartist),
+            sanitize_filename(self.album or "Unknown Album"),
+        )
         os.makedirs(album_export_path, exist_ok=True)
 
         for song in self.songs:
-            formatted_tracknumber = f"{song.tracknumber:02}" if song.tracknumber is not None else "00"
-            discnumber_prefix = f"{song.discnumber:02}-" if song.discnumber is not None else ""
+            formatted_tracknumber = (
+                f"{song.tracknumber:02}" if song.tracknumber is not None else "00"
+            )
+            discnumber_prefix = (
+                f"{song.discnumber:02}-" if song.discnumber is not None else ""
+            )
 
-            export_path = os.path.join(album_export_path, f"{discnumber_prefix}{formatted_tracknumber}. {sanitize_filename(song.title or 'Unknown Title')}.{output_format if output_format != 'copy' else Path(song.path).suffix.lstrip('.')}")
-            
+            export_path = os.path.join(
+                album_export_path,
+                f"{discnumber_prefix}{formatted_tracknumber}. {sanitize_filename(song.title or 'Unknown Title')}.{output_format if output_format != 'copy' else Path(song.path).suffix.lstrip('.')}",
+            )
+
             if output_format == "copy":
                 shutil.copy2(song.path, export_path)
             else:
-                raise NotImplementedError(f"Conversion to format '{output_format}' is not implemented.")
+                raise NotImplementedError(
+                    f"Conversion to format '{output_format}' is not implemented."
+                )
 
-            song.apply_new_metadata(export_path, year=self.year, albumartist=self.albumartist)
+            song.apply_new_metadata(
+                export_path, year=self.year, albumartist=self.albumartist
+            )
 
 
 albums: list[Album] = []
+
 
 def main():
     song_path = sys.argv[1] if len(sys.argv) > 1 else ""
