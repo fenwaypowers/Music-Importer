@@ -1,7 +1,7 @@
 import os
 import sys
 import shutil
-from mutagen._file import File
+from mutagen import File # type: ignore
 from pathlib import Path
 from typing import Optional
 from clean import clean_audio
@@ -16,6 +16,7 @@ def add_to_album(song):
     new_album = Album(song.album)
     new_album.add_song(song)
     albums.append(new_album)
+
 
 def parse_number(value: Optional[str]) -> Optional[int]:
     if value is None:
@@ -36,9 +37,11 @@ def parse_year(value: Optional[str]) -> Optional[int]:
     except ValueError:
         return None
 
+
 def sanitize_filename(name: str) -> str:
     invalid = '<>:"/\\|?*'
-    return "".join("_" if char in invalid else char for char in name).strip()
+    sanitized = "".join("_" if char in invalid else char for char in name)
+    return sanitized.strip().rstrip(".")
 
 class Song:
     def __init__(self, path: str):
@@ -83,12 +86,12 @@ class Song:
                 if year is not None:
                     audio["date"] = str(year)
                 if albumartist is not None:
-                    audio["albumartist"] = str(albumartist)
-                audio.save()
-
-            clean_audio(path)
+                    audio["albumartist"] = albumartist
+                audio.save()   
         except Exception as e:
             print(f"Error applying new metadata for {self.path}: {e}")
+
+        clean_audio(path)
 
 
     def __str__(self):
@@ -117,7 +120,7 @@ class Album:
 
         # TODO: sort songs by filename
         self.songs.sort(
-            key=lambda s: s.path.lower() if s.path is not None else ""
+            key=lambda s: Path(s.path).name.lower()
         )
 
     def export(self, export_dir: str, output_format: str = "copy"):
@@ -133,8 +136,7 @@ class Album:
 
         for song in self.songs:
             formatted_tracknumber = f"{song.tracknumber:02}" if song.tracknumber is not None else "00"
-            is_multidisc = any(song.discnumber is not None and song.discnumber > 1 for song in self.songs)
-            discnumber_prefix = f"{song.discnumber:02}-" if is_multidisc and song.discnumber is not None else ""
+            discnumber_prefix = f"{song.discnumber:02}-" if song.discnumber is not None else ""
 
             export_path = os.path.join(album_export_path, f"{discnumber_prefix}{formatted_tracknumber}. {sanitize_filename(song.title or 'Unknown Title')}.{output_format if output_format != 'copy' else Path(song.path).suffix.lstrip('.')}")
             
