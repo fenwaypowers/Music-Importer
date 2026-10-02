@@ -5,6 +5,26 @@ from mutagen import File  # type: ignore
 from pathlib import Path
 from typing import Optional
 from clean import clean_audio
+from convert import set_cover_art
+from convert import CoverArt
+from convert import get_cover_art
+from convert import convert_audio
+
+
+AUDIO_EXTS = {
+    ".flac",
+    ".mp3",
+    ".m4a",
+    ".aac",
+    ".ogg",
+    ".opus",
+    ".wav",
+    ".alac",
+    ".ape",
+    ".wv",
+    ".mp4",
+    ".mka",
+}
 
 
 def add_to_album(song) -> None:
@@ -102,6 +122,15 @@ class Song:
         except Exception as e:
             print(f"Error applying new metadata for {self.path}: {e}")
 
+    def apply_cover_art(self, path: str) -> None:
+        try:
+            cover: Optional[CoverArt] = get_cover_art(self.path)
+            if cover is not None:
+                set_cover_art(path, cover)
+
+        except Exception as e:
+            print(f"Error setting cover art for {path}: {e}")
+
     def __str__(self) -> str:
         return (
             f"Song(title={self.title}, artist={self.artist}, album={self.album}, "
@@ -153,7 +182,7 @@ class Album:
 
         self.year = min(self.years) if self.years else None
 
-    def export(self, export_dir: str, output_format: str = "copy") -> None:
+    def export(self, export_dir: str, ffmpeg_options: str = "-c:a copy", extension: str = "copy") -> None:
         self.resolve_metadata()
 
         album_export_path = os.path.join(
@@ -171,10 +200,8 @@ class Album:
                 f"{song.discnumber:02}-" if song.discnumber is not None else ""
             )
 
-            if output_format == "copy":
+            if extension == "copy":
                 extension = Path(song.path).suffix.lstrip(".")
-            else:
-                extension = output_format
 
             title = sanitize_filename(song.title or "Unknown Title")
 
@@ -186,16 +213,12 @@ class Album:
 
             export_path = os.path.join(album_export_path, filename)
 
-            if output_format == "copy":
-                shutil.copy2(song.path, export_path)
-            else:
-                raise NotImplementedError(
-                    f"Conversion to format '{output_format}' is not implemented."
-                )
+            convert_audio(song.path, export_path, ffmpeg_options)
 
             song.apply_new_metadata(
                 export_path, year=self.year, albumartist=self.albumartist
             )
+            song.apply_cover_art(export_path)
 
     def __str__(self) -> str:
         return (
@@ -212,6 +235,8 @@ def main():
     if in_path != "":
         for root, _, files in os.walk(in_path):
             for file in files:
+                if not any(file.lower().endswith(ext) for ext in AUDIO_EXTS):
+                    continue
                 file_path = os.path.join(root, file)
                 try:
                     song = Song(file_path)
