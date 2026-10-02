@@ -5,6 +5,7 @@ from .models import Album, Song
 
 albums: list[Album] = []
 
+
 def add_to_album(song) -> None:
     for album in albums:
         if album.album == song.album:
@@ -14,6 +15,7 @@ def add_to_album(song) -> None:
     new_album = Album(song.album)
     new_album.add_song(song)
     albums.append(new_album)
+
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -61,14 +63,10 @@ def main() -> None:
         raise SystemExit(f"Input directory does not exist: {input_dir}")
 
     if args.convert and not args.output_extension:
-        raise SystemExit(
-            "--output-extension is required when using --convert"
-        )
+        raise SystemExit("--output-extension is required when using --convert")
 
     if args.output_extension and not args.convert:
-        raise SystemExit(
-            "--output-extension can only be used with --convert"
-        )
+        raise SystemExit("--output-extension can only be used with --convert")
 
     # Find and load audio files.
     for path in input_dir.rglob("*"):
@@ -96,7 +94,7 @@ def main() -> None:
         else:
             album.export(
                 str(destination_dir),
-                extension = args.output_extension if args.output_extension else "copy",
+                extension=args.output_extension if args.output_extension else "copy",
             )
 
 

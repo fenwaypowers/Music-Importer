@@ -12,7 +12,7 @@ from mutagen.oggvorbis import OggVorbis
 from mutagen.oggopus import OggOpus
 from mutagen.monkeysaudio import MonkeysAudio
 from mutagen.wavpack import WavPack
-from mutagen.id3 import APIC #type: ignore
+from mutagen.id3 import APIC  # type: ignore
 
 
 @dataclass
@@ -187,9 +187,7 @@ def set_apev2_cover(
     extension = "png" if cover.mime == "image/png" else "jpg"
 
     audio.tags["Cover Art (Front)"] = (
-        f"cover.{extension}".encode("utf-8")
-        + b"\x00"
-        + cover.data
+        f"cover.{extension}".encode("utf-8") + b"\x00" + cover.data
     )
 
     audio.save()

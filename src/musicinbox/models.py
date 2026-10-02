@@ -63,17 +63,13 @@ class Song:
         self.album = audio.get("album", [None])[0] or None
         self.year = parse_year(audio.get("date", [None])[0])
 
-        self.tracknumber = parse_number(
-            audio.get("tracknumber", [None])[0]
-        )
+        self.tracknumber = parse_number(audio.get("tracknumber", [None])[0])
 
         self.genre = audio.get("genre", [None])[0] or None
         self.comment = audio.get("comment", [None])[0] or None
         self.albumartist = audio.get("albumartist", [None])[0] or None
 
-        self.discnumber = parse_number(
-            audio.get("discnumber", [None])[0]
-        )
+        self.discnumber = parse_number(audio.get("discnumber", [None])[0])
 
     def apply_new_metadata(
         self,
@@ -147,7 +143,10 @@ class Album:
                 self.albumartists[0] if self.albumartists else "Unknown Artist"
             )
 
-        if self.albumartist == "Unknown Artist" or self.albumartist == "Various Artists":
+        if (
+            self.albumartist == "Unknown Artist"
+            or self.albumartist == "Various Artists"
+        ):
             artists = []
             for song in self.songs:
                 if song.artist is not None and song.artist not in artists:
@@ -159,7 +158,12 @@ class Album:
 
         self.year = min(self.years) if self.years else None
 
-    def export(self, export_dir: str, ffmpeg_options: str = "-c:a copy", extension: str = "copy") -> None:
+    def export(
+        self,
+        export_dir: str,
+        ffmpeg_options: str = "-c:a copy",
+        extension: str = "copy",
+    ) -> None:
         self.resolve_metadata()
 
         album_export_path = os.path.join(
