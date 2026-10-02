@@ -131,8 +131,10 @@ class Album:
             if format == "copy":
                 shutil.copy(song.original_path, song_export_path)
 
-            song.new_path = song_export_path
+            # TODO: conversion for other formats
 
+            song.new_path = song_export_path
+            song.apply_new_metadata()
 
 
 def main():
