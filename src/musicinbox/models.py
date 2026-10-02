@@ -5,8 +5,10 @@ from pathlib import Path
 from typing import Optional
 
 class Song:
-    def __init__(self, path: str):
-        self.filename: str = path
+    def __init__(self, original_path: str):
+        self.original_path: str = original_path
+
+        # Metadata fields
         self.title: Optional[str] = None
         self.artist: Optional[str] = None
         self.album: Optional[str] = None
@@ -16,44 +18,52 @@ class Song:
         self.comment: Optional[str] = None
         self.albumartist: Optional[str] = None
         self.discnumber: Optional[str] = None
+
+        self.new_path: Optional[str] = None
+
         self.metadata_loaded: bool = False
 
         self.load_metadata()
 
     def load_metadata(self) -> None:
         try:
-            audio = File(self.filename, easy=True)
+            audio = File(self.original_path, easy=True)
             if audio is not None:
                 self.title = audio.get('title', [None])[0]
                 self.artist = audio.get('artist', [None])[0]
                 self.album = audio.get('album', [None])[0]
                 self.year = audio.get('date', [None])[0]
+
+                # make sure year only includes the year, and no extra info like month/day
+                if self.year is not None:
+                    self.year = self.year[:4]
+
                 self.tracknumber = audio.get('tracknumber', [None])[0]
                 self.genre = audio.get('genre', [None])[0]
                 self.comment = audio.get('comment', [None])[0]
                 self.albumartist = audio.get('albumartist', [None])[0]
                 self.discnumber = audio.get('discnumber', [None])[0]
         except Exception as e:
-            print(f"Error loading metadata for {self.filename}: {e}")
+            print(f"Error loading metadata for {self.original_path}: {e}")
         
         self.metadata_loaded = True
 
     def remove_images(self) -> None:
         try:
-            audio = File(self.filename)
+            audio = File(self.original_path)
             if audio is not None and hasattr(audio, 'tags') and audio.tags is not None:
                 tags_to_remove = [tag for tag in audio.tags.values() if tag.FrameID == 'APIC']
                 for tag in tags_to_remove:
                     del audio.tags[tag.FrameID]
                 audio.save()
         except Exception as e:
-            print(f"Error removing images from {self.filename}: {e}")
+            print(f"Error removing images from {self.original_path}: {e}")
 
     def __str__(self):
         return f"Song(title={self.title}, artist={self.artist}, album={self.album}, year={self.year}, tracknumber={self.tracknumber}, genre={self.genre}, comment={self.comment}, albumartist={self.albumartist}, discnumber={self.discnumber})"
     
 class Album:
-    perferred_cover_paths = [
+    preferred_cover_paths = [
     "cover.jpg",
     "cover.jpeg",
     "cover.png",
@@ -83,7 +93,7 @@ class Album:
     def load_cover_image(self) -> None:
         # Procedure 1: find image in folder
         for song in self.songs:
-            folder = Path(song.filename).parent
+            folder = Path(song.original_path).parent
             
             images = sorted(
                 [
@@ -93,7 +103,7 @@ class Album:
                 ]
             )
 
-            for preferred in self.perferred_cover_paths:
+            for preferred in self.preferred_cover_paths:
                 for img in images:
                     if img.name.lower() == preferred:
                         self.cover_img = img.read_bytes()
@@ -111,14 +121,14 @@ class Album:
         # Procedure 2: find image in metadata
         for song in self.songs:
             try:
-                audio = File(song.filename)
+                audio = File(song.original_path)
                 if audio is not None and hasattr(audio, 'tags') and audio.tags is not None:
                     for tag in audio.tags.values():
                         if tag.FrameID == 'APIC':
                             self.cover_img = tag.data
                             return
             except Exception as e:
-                print(f"Error loading cover image from {song.filename}: {e}")
+                print(f"Error loading cover image from {song.original_path}: {e}")
 
 def main():
     song_path = sys.argv[1] if len(sys.argv) > 1 else ""
