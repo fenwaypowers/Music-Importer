@@ -109,6 +109,7 @@ class Song:
             f"comment={self.comment}, albumartist={self.albumartist}, discnumber={self.discnumber})"
         )
 
+
 class Album:
     def __init__(self, album: Optional[str]):
         self.album: Optional[str] = album
@@ -133,12 +134,24 @@ class Album:
         self.songs.sort(key=lambda s: Path(s.path).name.lower())
 
     def resolve_metadata(self) -> None:
+
+
         if len(self.albumartists) > 1:
             self.albumartist = "Various Artists"
         else:
             self.albumartist = (
                 self.albumartists[0] if self.albumartists else "Unknown Artist"
             )
+
+        if self.albumartist == "Unknown Artist" or self.albumartist == "Various Artists":
+            artists = []
+            for song in self.songs:
+                if song.artist is not None and song.artist not in artists:
+                    artists.append(song.artist)
+            if len(artists) == 1:
+                self.albumartist = artists[0]
+            elif len(artists) > 1:
+                self.albumartist = "Various Artists"
 
         self.year = min(self.years) if self.years else None
 
@@ -211,6 +224,7 @@ def main():
     for album in albums:
         album.export("library")
         print(album)
+
 
 if __name__ == "__main__":
     main()
