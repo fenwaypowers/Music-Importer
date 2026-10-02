@@ -132,7 +132,7 @@ class Album:
         # TODO: sort songs by filename
         self.songs.sort(key=lambda s: Path(s.path).name.lower())
 
-    def export(self, export_dir: str, output_format: str = "copy") -> None:
+    def resolve_metadata(self) -> None:
         if len(self.albumartists) > 1:
             self.albumartist = "Various Artists"
         else:
@@ -142,9 +142,12 @@ class Album:
 
         self.year = min(self.years) if self.years else None
 
+    def export(self, export_dir: str, output_format: str = "copy") -> None:
+        self.resolve_metadata()
+
         album_export_path = os.path.join(
             export_dir,
-            sanitize_filename(self.albumartist),
+            sanitize_filename(self.albumartist or "Unknown Artist"),
             sanitize_filename(self.album or "Unknown Album"),
         )
         os.makedirs(album_export_path, exist_ok=True)
@@ -183,16 +186,31 @@ class Album:
                 export_path, year=self.year, albumartist=self.albumartist
             )
 
+    def __str__(self) -> str:
+        return (
+            f"Album(album={self.album}, albumartist={self.albumartist}, year={self.year}, "
+            f"songs=[{', '.join(str(song.title) for song in self.songs)}])"
+        )
+
 
 albums: list[Album] = []
 
 
 def main():
-    song_path = sys.argv[1] if len(sys.argv) > 1 else ""
-    if song_path != "":
-        song = Song(song_path)
-        print(song)
+    in_path = sys.argv[1] if len(sys.argv) > 1 else ""
+    if in_path != "":
+        for root, _, files in os.walk(in_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                try:
+                    song = Song(file_path)
+                    add_to_album(song)
+                except Exception as e:
+                    print(f"Error processing file {file_path}: {e}")
 
+    for album in albums:
+        album.export("library")
+        print(album)
 
 if __name__ == "__main__":
     main()
