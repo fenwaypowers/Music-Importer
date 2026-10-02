@@ -2,11 +2,11 @@ import os
 from mutagen import File  # type: ignore
 from pathlib import Path
 from typing import Optional
-from clean import clean_audio
-from convert import set_cover_art
-from convert import CoverArt
-from convert import get_cover_art
-from convert import convert_audio
+from .clean import clean_audio
+from .convert import set_cover_art
+from .convert import CoverArt
+from .convert import get_cover_art
+from .convert import convert_audio
 
 
 def parse_number(value: Optional[str]) -> Optional[int]:
