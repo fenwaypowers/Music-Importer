@@ -7,7 +7,7 @@ from typing import Optional
 from clean import clean_audio
 
 
-def add_to_album(song):
+def add_to_album(song) -> None:
     for album in albums:
         if album.album == song.album:
             album.add_song(song)
@@ -79,24 +79,35 @@ class Song:
             print(f"Error loading metadata for {self.path}: {e}")
 
     def apply_new_metadata(
-        self, path: str, year: Optional[int] = None, albumartist: Optional[str] = None
-    ):
+        self,
+        path: str,
+        year: Optional[int] = None,
+        albumartist: Optional[str] = None,
+    ) -> None:
         try:
             audio = File(path, easy=True)
-            if audio is not None:
-                if year is not None:
-                    audio["date"] = str(year)
-                if albumartist is not None:
-                    audio["albumartist"] = albumartist
-                audio.save()
+
+            if audio is None:
+                raise ValueError(f"Unsupported audio file: {path}")
+
+            if year is not None:
+                audio["date"] = str(year)
+
+            if albumartist is not None:
+                audio["albumartist"] = albumartist
+
+            audio.save()
+            clean_audio(path)
+
         except Exception as e:
             print(f"Error applying new metadata for {self.path}: {e}")
 
-        clean_audio(path)
-
-    def __str__(self):
-        return f"Song(title={self.title}, artist={self.artist}, album={self.album}, year={self.year}, tracknumber={self.tracknumber}, genre={self.genre}, comment={self.comment}, albumartist={self.albumartist}, discnumber={self.discnumber})"
-
+    def __str__(self) -> str:
+        return (
+            f"Song(title={self.title}, artist={self.artist}, album={self.album}, "
+            f"year={self.year}, tracknumber={self.tracknumber}, genre={self.genre}, "
+            f"comment={self.comment}, albumartist={self.albumartist}, discnumber={self.discnumber})"
+        )
 
 class Album:
     def __init__(self, album: Optional[str]):
@@ -121,7 +132,7 @@ class Album:
         # TODO: sort songs by filename
         self.songs.sort(key=lambda s: Path(s.path).name.lower())
 
-    def export(self, export_dir: str, output_format: str = "copy"):
+    def export(self, export_dir: str, output_format: str = "copy") -> None:
         if len(self.albumartists) > 1:
             self.albumartist = "Various Artists"
         else:
