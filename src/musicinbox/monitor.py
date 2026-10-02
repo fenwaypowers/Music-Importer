@@ -73,9 +73,7 @@ class AudioWatcher(FileSystemEventHandler):
             self.processing.remove(path)
 
 
-def wait_until_complete(path: Path,
-                        stable_seconds: float = 5,
-                        timeout: float = 600):
+def wait_until_complete(path: Path, stable_seconds: float = 5, timeout: float = 600):
     """
     Wait until the file size has stopped changing.
     """
