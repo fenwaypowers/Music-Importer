@@ -18,9 +18,9 @@ from mutagen.id3 import APIC  # type: ignore
 def get_output_codec(ffmpeg_options: str, extension: str) -> Optional[str]:
     """Resolve the requested audio encoder, falling back to unambiguous formats."""
     aliases = {
-        "libmp3lame": "mp3", "libshine": "mp3",
+        "libmp3lame": "mp3", "libshine": "mp3", "aac": "aac",
         "libfdk_aac": "aac", "libfaac": "aac",
-        "libopus": "opus", "libvorbis": "vorbis",
+        "libopus": "opus", "opus": "opus", "libvorbis": "vorbis",
         "libwavpack": "wavpack",
     }
     options = shlex.split(ffmpeg_options)
