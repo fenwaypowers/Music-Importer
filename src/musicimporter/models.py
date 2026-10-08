@@ -1,5 +1,13 @@
 import os
 from mutagen import File  # type: ignore
+from mutagen.flac import FLAC
+from mutagen.mp4 import MP4
+from mutagen.mp3 import MP3
+from mutagen.wave import WAVE
+from mutagen.oggvorbis import OggVorbis
+from mutagen.oggopus import OggOpus
+from mutagen.monkeysaudio import MonkeysAudio
+from mutagen.wavpack import WavPack
 from pathlib import Path
 from typing import Optional
 from .clean import clean_audio
@@ -7,6 +15,7 @@ from .convert import set_cover_art
 from .convert import CoverArt
 from .convert import get_cover_art
 from .convert import convert_audio
+from .convert import get_output_codec
 
 
 def parse_number(value: Optional[str]) -> Optional[int]:
@@ -50,13 +59,15 @@ class Song:
         self.albumartist: Optional[str] = None
         self.discnumber: Optional[int] = None
 
+        self.codec: Optional[str] = None
+
         self.load_metadata()
 
     def load_metadata(self) -> None:
         audio = File(self.path, easy=True)
 
         if audio is None:
-            raise ValueError("Unsupported audio file")
+            raise ValueError(f"Unsupported audio file: {self.path}")
 
         self.title = audio.get("title", [None])[0] or None
         self.artist = audio.get("artist", [None])[0] or None
@@ -71,11 +82,32 @@ class Song:
 
         self.discnumber = parse_number(audio.get("discnumber", [None])[0])
 
+        if isinstance(audio, FLAC):
+            self.codec = "flac"
+        elif isinstance(audio, MP4):
+            codec = str(audio.info.codec).lower()
+            self.codec = "aac" if codec.startswith("mp4a.40.") else codec
+        elif isinstance(audio, MP3):
+            self.codec = "mp3"
+        elif isinstance(audio, WAVE):
+            self.codec = "pcm"
+        elif isinstance(audio, OggVorbis):
+            self.codec = "vorbis"
+        elif isinstance(audio, OggOpus):
+            self.codec = "opus"
+        elif isinstance(audio, MonkeysAudio):
+            self.codec = "ape"
+        elif isinstance(audio, WavPack):
+            self.codec = "wavpack"
+        else:
+            self.codec = None
+
     def apply_new_metadata(
         self,
         path: str,
         year: Optional[int] = None,
         albumartist: Optional[str] = None,
+        genre: Optional[str] = None,
     ) -> None:
         try:
             audio = File(path, easy=True)
@@ -89,15 +121,20 @@ class Song:
             if albumartist is not None:
                 audio["albumartist"] = albumartist
 
+            if genre is not None:
+                audio["genre"] = genre
+
             audio.save()
             clean_audio(path)
 
         except Exception as e:
             print(f"Error applying new metadata for {self.path}: {e}")
 
-    def apply_cover_art(self, path: str) -> None:
+    def apply_cover_art(self, path: str, cover: Optional[CoverArt] = None) -> None:
         try:
-            cover: Optional[CoverArt] = get_cover_art(self.path)
+            if cover is None:
+                cover = get_cover_art(self.path)
+
             if cover is not None:
                 set_cover_art(path, cover)
 
@@ -117,11 +154,16 @@ class Album:
         self.album: Optional[str] = album
         self.albumartist: Optional[str] = None
         self.year: Optional[int] = None
+        self.genre: Optional[str] = None
+
+        self.cover: Optional[CoverArt] = None
 
         self.albumartists: list[str] = []
         self.years: list[int] = []
+        self.genres: list[str] = []
 
         self.songs: list[Song] = []
+        self.resolved: bool = False
 
     def add_song(self, song: Song) -> None:
         if song.albumartist is not None and song.albumartist not in self.albumartists:
@@ -129,6 +171,8 @@ class Album:
 
         if song.year is not None and song.year not in self.years:
             self.years.append(song.year)
+        if song.genre is not None and song.genre not in self.genres:
+            self.genres.append(song.genre)
 
         self.songs.append(song)
 
@@ -157,16 +201,30 @@ class Album:
                 self.albumartist = "Various Artists"
 
         self.year = min(self.years) if self.years else None
+        self.genre = self.genres[0] if self.genres else None
+
+        for song in self.songs:
+            temp_cover = get_cover_art(song.path)
+            if temp_cover is not None:
+                self.cover = temp_cover
+                break
+
+        self.resolved = True
 
     def export(
         self,
         export_dir: str,
         ffmpeg_options: str = "-c:a copy",
         extension: str = "copy",
+        force_reencode: bool = False,
     ) -> list[Song]:
+        """Export songs, copying matching codecs unless force_reencode is set."""
         exported: list[Song] = []
-        
-        self.resolve_metadata()
+        output_codec = get_output_codec(ffmpeg_options, extension)
+
+        if not self.resolved:
+            self.resolve_metadata()
+            self.resolved = True
 
         album_export_path = os.path.join(
             export_dir,
@@ -183,25 +241,31 @@ class Album:
                 f"{song.discnumber:02}-" if song.discnumber is not None else ""
             )
 
-            if extension == "copy":
-                extension = Path(song.path).suffix.lstrip(".")
+            song_extension = (
+                Path(song.path).suffix.lstrip(".")
+                if extension == "copy" else extension.lstrip(".")
+            )
 
             title = sanitize_filename(song.title or "Unknown Title")
 
             filename = (
                 f"{discnumber_prefix}"
                 f"{formatted_tracknumber}. "
-                f"{title}.{extension}"
+                f"{title}.{song_extension}"
             )
 
             export_path = os.path.join(album_export_path, filename)
 
-            convert_audio(song.path, export_path, ffmpeg_options)
+            options = ffmpeg_options
+            if not force_reencode and song.codec is not None and song.codec == output_codec:
+                options = "-c:a copy"
+            convert_audio(song.path, export_path, options)
 
             song.apply_new_metadata(
-                export_path, year=self.year, albumartist=self.albumartist
+                export_path, year=self.year, albumartist=self.albumartist, genre=self.genre
             )
-            song.apply_cover_art(export_path)
+            song.apply_cover_art(export_path, self.cover)
+            
             exported.append(song)
 
         return exported

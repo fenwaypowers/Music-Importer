@@ -15,6 +15,30 @@ from mutagen.wavpack import WavPack
 from mutagen.id3 import APIC  # type: ignore
 
 
+def get_output_codec(ffmpeg_options: str, extension: str) -> Optional[str]:
+    """Resolve the requested audio encoder, falling back to unambiguous formats."""
+    aliases = {
+        "libmp3lame": "mp3", "libshine": "mp3",
+        "libfdk_aac": "aac", "libfaac": "aac",
+        "libopus": "opus", "libvorbis": "vorbis",
+        "libwavpack": "wavpack",
+    }
+    options = shlex.split(ffmpeg_options)
+    codec = None
+    for index, option in enumerate(options[:-1]):
+        if option in ("-c", "-codec", "-acodec") or option.startswith(
+            ("-c:a", "-codec:a")
+        ):
+            encoder = options[index + 1].lower()
+            codec = aliases.get(encoder, encoder)
+    if codec is not None:
+        return codec
+    return {
+        "mp3": "mp3", "flac": "flac", "opus": "opus",
+        "aac": "aac", "ape": "ape", "wv": "wavpack",
+    }.get(extension.lower().lstrip("."))
+
+
 @dataclass
 class CoverArt:
     data: bytes

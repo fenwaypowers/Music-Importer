@@ -59,7 +59,15 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--force-reencode",
+        "-fr",
+        action="store_true",
+        help="Apply --convert options even when the source codec already matches",
+    )
+
+    parser.add_argument(
         "--delete",
+        "-d",
         action="store_true",
         help="Delete original files after a successful import without prompting",
     )
@@ -81,6 +89,8 @@ def main() -> None:
 
     if args.convert and not args.output_extension:
         raise SystemExit("--output-extension is required when using --convert")
+    if args.force_reencode and not args.convert:
+        raise SystemExit("--force-reencode requires --convert")
 
     # Find and load audio files.
     for path in input_dir.rglob("*"):
@@ -105,6 +115,7 @@ def main() -> None:
                 str(destination_dir),
                 extension=args.output_extension,
                 ffmpeg_options=args.convert,
+                force_reencode=args.force_reencode,
             )
         else:
             exported_files = album.export(

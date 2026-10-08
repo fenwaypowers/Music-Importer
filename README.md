@@ -83,6 +83,20 @@ musicimporter ./inbox ~/Music \
 
 The value passed to `--convert` is passed to FFmpeg as audio encoding options, allowing you to choose the codec and encoding settings yourself.
 
+When a song already uses the requested codec, Music Importer uses FFmpeg's
+`-c:a copy` instead to avoid unnecessary re-encoding. For example, MP3 input
+is copied when requesting `-c:a libmp3lame`. The codec is checked per song,
+including distinguishing AAC from ALAC in M4A files.
+
+To apply encoding settings even to songs with the same codec, add
+`--force-reencode`:
+
+```bash
+musicimporter ./inbox ~/Music --convert "-c:a libmp3lame -b:a 192k" --extension mp3 --force-reencode
+```
+
+Python callers can use `album.export(destination, ffmpeg_options="-c:a libmp3lame -b:a 192k", extension="mp3", force_reencode=True)`.
+
 If `--convert` is not specified, files are copied in their original format.
 
 ## Library Structure
