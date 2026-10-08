@@ -242,7 +242,8 @@ class Album:
         """Export songs, copying matching codecs unless force_reencode is set."""
         exported: list[Song] = []
 
-        if not self.ffmpeg_options or not self.extension or not self.output_codec:
+        # Empty options use FFmpeg defaults; an unknown codec is valid too.
+        if self.ffmpeg_options is None or not self.extension:
             self.resolve_settings()
 
         if not self.resolved:
