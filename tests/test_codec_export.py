@@ -27,6 +27,13 @@ class CodecTests(unittest.TestCase):
             (EasyMP4, {"codec": "alac"}, "alac"),
             (WAVE, {"audio_format": 1, "bits_per_sample": 16}, "pcm_s16le"),
             (WAVE, {"audio_format": 3, "bits_per_sample": 32}, "pcm_f32le"),
+            (WAVE, {"audio_format": 1, "bits_per_sample": 8}, "pcm_u8"),
+            (WAVE, {"audio_format": 1, "bits_per_sample": 24}, "pcm_s24le"),
+            (WAVE, {"audio_format": 1, "bits_per_sample": 32}, "pcm_s32le"),
+            (WAVE, {"audio_format": 3, "bits_per_sample": 64}, "pcm_f64le"),
+            (WAVE, {"audio_format": 6, "bits_per_sample": 8}, "pcm_alaw"),
+            (WAVE, {"audio_format": 7, "bits_per_sample": 8}, "pcm_mulaw"),
+            (WAVE, {"audio_format": 65534, "bits_per_sample": 16}, None),
         ):
             with self.subTest(codec=expected):
                 audio = Mock(spec=audio_type)

@@ -90,7 +90,16 @@ class Song:
         elif isinstance(audio, MP3):
             self.codec = "mp3"
         elif isinstance(audio, WAVE):
-            self.codec = "pcm"
+            self.codec = {
+                (1, 8): "pcm_u8",
+                (1, 16): "pcm_s16le",
+                (1, 24): "pcm_s24le",
+                (1, 32): "pcm_s32le",
+                (3, 32): "pcm_f32le",
+                (3, 64): "pcm_f64le",
+                (6, 8): "pcm_alaw",
+                (7, 8): "pcm_mulaw",
+            }.get((audio.info.audio_format, audio.info.bits_per_sample))
         elif isinstance(audio, OggVorbis):
             self.codec = "vorbis"
         elif isinstance(audio, OggOpus):
