@@ -36,6 +36,9 @@ def get_output_codec(ffmpeg_options: str, extension: str) -> Optional[str]:
     return {
         "mp3": "mp3", "flac": "flac", "opus": "opus",
         "aac": "aac", "ape": "ape", "wv": "wavpack",
+        "pcm_u8": "pcm_u8", "pcm_s16le": "pcm_s16le", "pcm_s24le": "pcm_s24le",
+        "pcm_s32le": "pcm_s32le", "pcm_f32le": "pcm_f32le", "pcm_f64le": "pcm_f64le",
+        "pcm_alaw": "pcm_alaw", "pcm_mulaw": "pcm_mulaw",
     }.get(extension.lower().lstrip("."))
 
 
