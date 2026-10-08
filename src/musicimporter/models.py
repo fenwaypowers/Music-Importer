@@ -176,7 +176,6 @@ class Album:
 
         self.songs.append(song)
 
-        # TODO: sort songs by filename
         self.songs.sort(key=lambda s: Path(s.path).name.lower())
 
     def resolve_metadata(self) -> None:
