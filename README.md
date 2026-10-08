@@ -95,7 +95,7 @@ To apply encoding settings even to songs with the same codec, add
 musicimporter ./inbox ~/Music --convert "-c:a libmp3lame -b:a 192k" --extension mp3 --force-reencode
 ```
 
-Python callers can use `album.export(destination, ffmpeg_options="-c:a libmp3lame -b:a 192k", extension="mp3", force_reencode=True)`.
+Python callers can configure conversion with `album.resolve_settings(ffmpeg_options="-c:a libmp3lame -b:a 192k", extension="mp3")`, then call `album.export(destination, force_reencode=True)`. The settings are stored in `album.ffmpeg_options`, `album.extension`, and `album.output_codec`; `export()` does not call `resolve_settings()`.
 
 If `--convert` is not specified, files are copied in their original format.
 

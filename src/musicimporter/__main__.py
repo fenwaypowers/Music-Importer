@@ -110,18 +110,14 @@ def main() -> None:
 
     # Export albums.
     for album in albums:
-        if args.convert:
-            exported_files =album.export(
-                str(destination_dir),
-                extension=args.output_extension,
-                ffmpeg_options=args.convert,
-                force_reencode=args.force_reencode,
-            )
-        else:
-            exported_files = album.export(
-                str(destination_dir),
-                extension=args.output_extension if args.output_extension else "copy",
-            )
+        album.resolve_settings(
+            ffmpeg_options=args.convert or "-c:a copy",
+            extension=args.output_extension or "copy",
+        )
+        exported_files = album.export(
+            str(destination_dir),
+            force_reencode=args.force_reencode,
+        )
 
         imported_files.extend(exported_files)
 

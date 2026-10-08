@@ -158,6 +158,10 @@ class Album:
 
         self.cover: Optional[CoverArt] = None
 
+        self.ffmpeg_options: str = "-c:a copy"
+        self.extension: str = "copy"
+        self.output_codec: Optional[str] = "copy"
+
         self.albumartists: list[str] = []
         self.years: list[int] = []
         self.genres: list[str] = []
@@ -210,16 +214,27 @@ class Album:
 
         self.resolved = True
 
+    def resolve_settings(
+        self,
+        ffmpeg_options: str = "-c:a copy",
+        extension: str = "copy",
+    ) -> None:
+        """Store conversion settings and resolve the requested output codec."""
+        output_codec = get_output_codec(ffmpeg_options, extension)
+        self.ffmpeg_options = ffmpeg_options
+        self.extension = extension
+        self.output_codec = output_codec
+
     def export(
         self,
         export_dir: str,
-        ffmpeg_options: str = "-c:a copy",
-        extension: str = "copy",
         force_reencode: bool = False,
     ) -> list[Song]:
         """Export songs, copying matching codecs unless force_reencode is set."""
         exported: list[Song] = []
-        output_codec = get_output_codec(ffmpeg_options, extension)
+
+        if not self.ffmpeg_options or not self.extension or not self.output_codec:
+            self.resolve_settings()
 
         if not self.resolved:
             self.resolve_metadata()
@@ -242,7 +257,7 @@ class Album:
 
             song_extension = (
                 Path(song.path).suffix.lstrip(".")
-                if extension == "copy" else extension.lstrip(".")
+                if self.extension == "copy" else self.extension.lstrip(".")
             )
 
             title = sanitize_filename(song.title or "Unknown Title")
@@ -255,8 +270,8 @@ class Album:
 
             export_path = os.path.join(album_export_path, filename)
 
-            options = ffmpeg_options
-            if not force_reencode and song.codec is not None and song.codec == output_codec:
+            options = self.ffmpeg_options
+            if not force_reencode and song.codec is not None and song.codec == self.output_codec:
                 options = "-c:a copy"
             convert_audio(song.path, export_path, options)
 

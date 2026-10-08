@@ -45,6 +45,7 @@ class CodecTests(unittest.TestCase):
 
     def export(self, codecs, options, extension, force=False):
         album = Album("Album")
+        album.resolve_settings(options, extension)
         album.resolved = True
         album.songs = [
             Mock(path=f"track{i}.{suffix}", codec=codec, title=f"Track {i}",
@@ -53,7 +54,9 @@ class CodecTests(unittest.TestCase):
         ]
         with tempfile.TemporaryDirectory() as destination:
             with patch("musicimporter.models.convert_audio") as convert:
-                album.export(destination, options, extension, force_reencode=force)
+                with patch.object(album, "resolve_settings") as resolve:
+                    album.export(destination, force_reencode=force)
+                    resolve.assert_not_called()
                 return convert.call_args_list
 
     def test_mixed_album_copies_only_matching_tracks(self):
