@@ -133,6 +133,10 @@ class Song:
             if genre is not None:
                 audio["genre"] = genre
 
+            audio["tracknumber"] = (
+                str(self.tracknumber) if self.tracknumber is not None else "0"
+            )
+
             audio.save()
             clean_audio(path)
 
@@ -189,7 +193,12 @@ class Album:
 
         self.songs.append(song)
 
-        self.songs.sort(key=lambda s: Path(s.path).name.lower())
+        self.songs.sort(
+            key=lambda s: (
+                s.tracknumber if s.tracknumber is not None else float("inf"),
+                Path(s.path).name.lower(),
+            )
+        )
 
     def resolve_metadata(self) -> None:
         if len(self.albumartists) > 1:
@@ -220,6 +229,10 @@ class Album:
             if temp_cover is not None:
                 self.cover = temp_cover
                 break
+
+        for index, song in enumerate(self.songs):
+            if song.tracknumber is None:
+                song.tracknumber = index + 1
 
         self.resolved = True
 
@@ -257,9 +270,11 @@ class Album:
         )
         os.makedirs(album_export_path, exist_ok=True)
 
-        for song in self.songs:
+        for index, song in enumerate(self.songs):
             formatted_tracknumber = (
-                f"{song.tracknumber:02}" if song.tracknumber is not None else "00"
+                f"{song.tracknumber:02}"
+                if song.tracknumber is not None
+                else f"{index+1:02}"
             )
             discnumber_prefix = (
                 f"{song.discnumber:02}-" if song.discnumber is not None else ""
