@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "musicimporter"
-version = "0.1.0"
+version = "0.2.0"
 description = "Import, organize, clean, and optionally convert music for your library."
 readme = "README.md"
 requires-python = ">=3.10"
