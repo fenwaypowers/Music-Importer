@@ -18,9 +18,14 @@ from mutagen.id3 import APIC  # type: ignore
 def get_output_codec(ffmpeg_options: str, extension: str) -> Optional[str]:
     """Resolve the requested audio encoder, falling back to unambiguous formats."""
     aliases = {
-        "libmp3lame": "mp3", "libshine": "mp3", "aac": "aac",
-        "libfdk_aac": "aac", "libfaac": "aac",
-        "libopus": "opus", "opus": "opus", "libvorbis": "vorbis",
+        "libmp3lame": "mp3",
+        "libshine": "mp3",
+        "aac": "aac",
+        "libfdk_aac": "aac",
+        "libfaac": "aac",
+        "libopus": "opus",
+        "opus": "opus",
+        "libvorbis": "vorbis",
         "libwavpack": "wavpack",
     }
     options = shlex.split(ffmpeg_options)
@@ -34,11 +39,20 @@ def get_output_codec(ffmpeg_options: str, extension: str) -> Optional[str]:
     if codec is not None:
         return codec
     return {
-        "mp3": "mp3", "flac": "flac", "opus": "opus",
-        "aac": "aac", "ape": "ape", "wv": "wavpack",
-        "pcm_u8": "pcm_u8", "pcm_s16le": "pcm_s16le", "pcm_s24le": "pcm_s24le",
-        "pcm_s32le": "pcm_s32le", "pcm_f32le": "pcm_f32le", "pcm_f64le": "pcm_f64le",
-        "pcm_alaw": "pcm_alaw", "pcm_mulaw": "pcm_mulaw",
+        "mp3": "mp3",
+        "flac": "flac",
+        "opus": "opus",
+        "aac": "aac",
+        "ape": "ape",
+        "wv": "wavpack",
+        "pcm_u8": "pcm_u8",
+        "pcm_s16le": "pcm_s16le",
+        "pcm_s24le": "pcm_s24le",
+        "pcm_s32le": "pcm_s32le",
+        "pcm_f32le": "pcm_f32le",
+        "pcm_f64le": "pcm_f64le",
+        "pcm_alaw": "pcm_alaw",
+        "pcm_mulaw": "pcm_mulaw",
     }.get(extension.lower().lstrip("."))
 
 

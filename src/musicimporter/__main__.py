@@ -6,6 +6,7 @@ from .models import Album, Song
 
 albums: list[Album] = []
 
+
 def add_to_album(song) -> None:
     for album in albums:
         if album.album == song.album:
@@ -18,9 +19,7 @@ def add_to_album(song) -> None:
 
 
 def confirm_delete() -> bool:
-    response = input(
-        "\nDelete the original files? [y/N]: "
-    ).strip().lower()
+    response = input("\nDelete the original files? [y/N]: ").strip().lower()
 
     return response in ("y", "yes")
 

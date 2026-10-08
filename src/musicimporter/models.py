@@ -267,7 +267,8 @@ class Album:
 
             song_extension = (
                 Path(song.path).suffix.lstrip(".")
-                if self.extension == "copy" else self.extension.lstrip(".")
+                if self.extension == "copy"
+                else self.extension.lstrip(".")
             )
 
             title = sanitize_filename(song.title or "Unknown Title")
@@ -281,15 +282,22 @@ class Album:
             export_path = os.path.join(album_export_path, filename)
 
             options = self.ffmpeg_options
-            if not force_reencode and song.codec is not None and song.codec == self.output_codec:
+            if (
+                not force_reencode
+                and song.codec is not None
+                and song.codec == self.output_codec
+            ):
                 options = "-c:a copy"
             convert_audio(song.path, export_path, options)
 
             song.apply_new_metadata(
-                export_path, year=self.year, albumartist=self.albumartist, genre=self.genre
+                export_path,
+                year=self.year,
+                albumartist=self.albumartist,
+                genre=self.genre,
             )
             song.apply_cover_art(export_path, self.cover)
-            
+
             exported.append(song)
 
         return exported
